@@ -4,6 +4,7 @@ from tqdm import tqdm
 from collections import defaultdict
 from sklearn.tree import DecisionTreeRegressor
 
+from libcpp cimport bool
 from libcpp.vector cimport vector
 
 ctypedef cnp.float_t DTYPE_t
@@ -11,20 +12,37 @@ ctypedef cnp.int64_t DTYPE_i
 
 cdef extern from "../tree/ClassificationTree.h":
     cdef cppclass ClassificationTree:
-        ClassificationTree(vector[vector[float]] & x, vector[int] & y, int min_samples_leaf);
+        ClassificationTree(const vector[vector[float]] & x,
+                           const vector[int] & y,
+                           const vector[float] & sample_weight,
+                           int min_samples_leaf);
         vector[int] predict(const vector[vector[float]] & x);
+        vector[vector[float]] predict_proba(const vector[vector[float]] & x);
 
         const vector[vector[float]] x;
         const vector[int] y;
         int n_features;
         int nlevs;
+        vector[int] Beg, End;
+        vector[int] Pred, Cl, Cr, Spvb;
+        vector[float] Ws;
+        vector[bool] Leaf;
+        vector[float] Spva;
 
 cdef class TreeClassification:
     cdef ClassificationTree * _thisptr
 
-    def __cinit__(self, cnp.ndarray[DTYPE_t, ndim=2] x, cnp.ndarray[DTYPE_i, ndim=1] y, int min_samples_leaf=2):
+    def __cinit__(self,
+                  cnp.ndarray[DTYPE_t, ndim=2] x,
+                  cnp.ndarray[DTYPE_i, ndim=1] y,
+                  sample_weight=None,
+                  int min_samples_leaf=2):
         _x = np.transpose(x)
-        self._thisptr = new ClassificationTree(_x, y, min_samples_leaf)
+        if sample_weight is None:
+            sample_weight = np.ones((len(y)), dtype=float)
+        else:
+            sample_weight = np.array(sample_weight, dtype=float).reshape(-1)
+        self._thisptr = new ClassificationTree(_x, y, sample_weight, min_samples_leaf)
         if self._thisptr == NULL:
             raise MemoryError()
 
@@ -48,11 +66,30 @@ cdef class TreeClassification:
     def n_features(self):
         return self._thisptr.n_features
 
+    @property
+    def tree_(self):
+        mtree = {'v1cl': self._thisptr.Cl,
+                 'v2cr': self._thisptr.Cr,
+                 'v3spvb': self._thisptr.Spvb,
+                 'v4spva': self._thisptr.Spva,
+                 'v5ws': self._thisptr.Ws,
+                 'v6pred': self._thisptr.Pred,
+                 'v7leaf': self._thisptr.Leaf,
+                 'v8beg': self._thisptr.Beg,
+                 'v9end': self._thisptr.End}
+        return mtree
+
     def predict(self, x):
         if np.ndim(x) != 2:
             x = np.reshape(x, (1, -1))
         assert x.shape[1] == self.n_features, "x.shape[1] must match n_features."
         return np.asarray(self._thisptr.predict(x), int)
+
+    def predict_proba(self, x):
+        if np.ndim(x) != 2:
+            x = np.reshape(x, (1, -1))
+        assert x.shape[1] == self.n_features, "x.shape[1] must match n_features."
+        return np.atleast_2d(self._thisptr.predict_proba(x))
 
     def __call__(self, x):
         return self.predict(x)
