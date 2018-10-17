@@ -15,7 +15,8 @@ cdef extern from "../tree/ClassificationTree.h":
         ClassificationTree(const vector[vector[float]] & x,
                            const vector[int] & y,
                            const vector[float] & sample_weight,
-                           int min_samples_leaf);
+                           int min_samples_leaf,
+                           int max_depth);
         vector[int] predict(const vector[vector[float]] & x);
         vector[vector[float]] predict_proba(const vector[vector[float]] & x);
 
@@ -28,6 +29,7 @@ cdef extern from "../tree/ClassificationTree.h":
         vector[float] Ws;
         vector[bool] Leaf;
         vector[float] Spva;
+        vector[int] Depth;
 
 cdef class TreeClassification:
     cdef ClassificationTree * _thisptr
@@ -36,13 +38,14 @@ cdef class TreeClassification:
                   cnp.ndarray[DTYPE_t, ndim=2] x,
                   cnp.ndarray[DTYPE_i, ndim=1] y,
                   sample_weight=None,
-                  int min_samples_leaf=2):
+                  int min_samples_leaf=2,
+                  int max_depth=-1):
         _x = np.transpose(x)
         if sample_weight is None:
             sample_weight = np.ones((len(y)), dtype=float)
         else:
             sample_weight = np.array(sample_weight, dtype=float).reshape(-1)
-        self._thisptr = new ClassificationTree(_x, y, sample_weight, min_samples_leaf)
+        self._thisptr = new ClassificationTree(_x, y, sample_weight, min_samples_leaf, max_depth)
         if self._thisptr == NULL:
             raise MemoryError()
 
@@ -76,7 +79,8 @@ cdef class TreeClassification:
                  'v6pred': self._thisptr.Pred,
                  'v7leaf': self._thisptr.Leaf,
                  'v8beg': self._thisptr.Beg,
-                 'v9end': self._thisptr.End}
+                 'v9end': self._thisptr.End,
+                 'v10depth': self._thisptr.Depth}
         return mtree
 
     def predict(self, x):

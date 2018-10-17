@@ -7,17 +7,20 @@
 ClassificationTree::ClassificationTree(const vector<vector<float> > & x,
                                        const vector<int> & y,
                                        const vector<float> & sample_weight,
-                                       int min_samples_leaf)
+                                       int min_samples_leaf,
+                                       int max_depth)
         : x(x), y(y) {
     n_features = (int)x.size();
     assert(y.size() == sample_weight.size());
-    build(x, y, sample_weight, min_samples_leaf);
+    max_depth = (max_depth == -1) ? (int)log2(x.front().size()) : max_depth;
+    build(x, y, sample_weight, min_samples_leaf, max_depth);
 }
 
 void ClassificationTree::build(const vector<vector<float> > & x,
                                const vector<int> & y,
                                const vector<float> & sample_weight,
-                               int min_samples_leaf) {
+                               int min_samples_leaf,
+                               int max_depth) {
     nlevs = *max_element(y.begin(), y.end()) + 1;
     auto p = x.size();
     auto n = x.front().size();
@@ -32,6 +35,7 @@ void ClassificationTree::build(const vector<vector<float> > & x,
     for (int i = 0; i < y.size(); ++i) {
         mpop[y[i]] += sample_weight[i];
     }
+    Depth.push_back(0);
     Pop.push_back(mpop);
     Pred.push_back(utils::argmax(mpop));
     int cur = 0, kn = 0;
@@ -45,7 +49,8 @@ void ClassificationTree::build(const vector<vector<float> > & x,
         }
         float mpdo = Ws[cur];
         float mcrit0 = mpno / mpdo;
-        if (mcrit0 / mpdo > 1 - 1e-4) {
+        int depth = Depth[cur];
+        if (mcrit0 / mpdo > 1 - 1e-4 || depth >= max_depth) {
             Leaf.push_back(true);
         } else {
             vector<int> ma(p);
@@ -83,6 +88,7 @@ void ClassificationTree::build(const vector<vector<float> > & x,
                     Ws.push_back(left_w);
                     Pop.push_back(ltpop);
                     Pred.push_back(utils::argmax(ltpop));
+                    Depth.push_back(depth + 1);
                     //right
                     Beg.push_back(ma[pvb] + 1);
                     End.push_back(end);
@@ -93,7 +99,8 @@ void ClassificationTree::build(const vector<vector<float> > & x,
                     Ws.push_back(mpdo - left_w);
                     Pop.push_back(rtpop);
                     Pred.push_back(utils::argmax(rtpop));
-                    
+                    Depth.push_back(depth + 1);
+
                     kn += 2;
                     
                     vector<int> tin(n);
