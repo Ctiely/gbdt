@@ -93,6 +93,7 @@ if __name__ == "__main__":
 #    samples = sampling([1, 2, 3, 4, 5], 10000, [4, 2, 2, 3, 6])
 #    for i in range(1, 6):
 #        print(np.mean(samples == i))
+    import time
     from sklearn.datasets import load_digits
     from sklearn.cross_validation import train_test_split
     from sklearn.ensemble import AdaBoostClassifier
@@ -103,10 +104,10 @@ if __name__ == "__main__":
     y = data["target"]
     
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
-    
+    time.sleep(1)
     adaboost_full = AdaBoostClassification(100, min_samples_leaf=2, max_depth=-1)
     adaboost_full.fit(x_train, y_train)
-    print("depth=-1|adaboost test accuracy: %s" 
+    print("depth=-1|adaboost test accuracy: %s"
           % np.mean(adaboost_full.predict(x_test) == y_test))
     
     sklearn_adaboost_full = AdaBoostClassifier(DecisionTreeClassifier(min_samples_leaf=2, max_depth=None),
@@ -115,7 +116,7 @@ if __name__ == "__main__":
     sklearn_adaboost_full.fit(x_train, y_train)
     print("depth=-1|sklearn adaboost test accuracy: %s" 
           % np.mean(sklearn_adaboost_full.predict(x_test) == y_test))
-    
+    time.sleep(1)
     adaboost = AdaBoostClassification(100, min_samples_leaf=2, max_depth=3)
     adaboost.fit(x_train, y_train)
     print("depth=3|adaboost test accuracy: %s" 
