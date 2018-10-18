@@ -16,48 +16,48 @@ using namespace std;
 
 class ClassificationTree {
 public:
-    explicit ClassificationTree(const vector<vector<float> > & x,
+    explicit ClassificationTree(const vector<vector<double> > & x,
                                 const vector<int> & y,
-                                const vector<float> & sample_weight,
+                                const vector<double> & sample_weight,
                                 int min_samples_leaf=2,
                                 int max_depth=-1);
     ~ClassificationTree() = default;
 
-    vector<int> predict(const vector<vector<float> > & x);
-    vector<vector<float> > predict_proba(const vector<vector<float> > & x);
+    vector<int> predict(const vector<vector<double> > & x);
+    vector<vector<double> > predict_proba(const vector<vector<double> > & x);
     //tree
     vector<int> Beg, End;
     vector<int> Pred, Cl, Cr, Spvb;
-    vector<float> Ws;
+    vector<double> Ws;
     vector<bool> Leaf;
-    vector<float> Spva;
+    vector<double> Spva;
     vector<int> Depth;
     //data
-    const vector<vector<float> > x;
+    const vector<vector<double> > x;
     const vector<int> y;
     int n_features;
     int nlevs;
 private:
-    void build(const vector<vector<float> > & x,
+    void build(const vector<vector<double> > & x,
                const vector<int> & y,
-               const vector<float> & sample_weight,
+               const vector<double> & sample_weight,
                int min_samples_leaf,
                int max_depth);
-    pair<int, float> split(vector<int> & ta,
-                           const vector<float> & tx,
+    pair<int, double> split(vector<int> & ta,
+                           const vector<double> & tx,
                            const vector<int> & ty,
-                           const vector<float> & sample_weight,
-                           vector<float> & tpop,
-                           float pno,
-                           float pdo,
-                           float crit0,
+                           const vector<double> & sample_weight,
+                           vector<double> & tpop,
+                           double pno,
+                           double pdo,
+                           double crit0,
                            int tbeg,
                            int tend,
                            int nlevs);
-    int predict(const vector<float> & x);
-    vector<float> predict_proba(const vector<float> & x);
+    int predict(const vector<double> & x);
+    vector<double> predict_proba(const vector<double> & x);
     
-    vector<vector<float> > Pop;
+    vector<vector<double> > Pop;
 };
 
 

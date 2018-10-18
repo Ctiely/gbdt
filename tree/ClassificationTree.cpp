@@ -4,9 +4,9 @@
 
 #include "ClassificationTree.h"
 
-ClassificationTree::ClassificationTree(const vector<vector<float> > & x,
+ClassificationTree::ClassificationTree(const vector<vector<double> > & x,
                                        const vector<int> & y,
-                                       const vector<float> & sample_weight,
+                                       const vector<double> & sample_weight,
                                        int min_samples_leaf,
                                        int max_depth)
         : x(x), y(y) {
@@ -16,9 +16,9 @@ ClassificationTree::ClassificationTree(const vector<vector<float> > & x,
     build(x, y, sample_weight, min_samples_leaf, max_depth);
 }
 
-void ClassificationTree::build(const vector<vector<float> > & x,
+void ClassificationTree::build(const vector<vector<double> > & x,
                                const vector<int> & y,
-                               const vector<float> & sample_weight,
+                               const vector<double> & sample_weight,
                                int min_samples_leaf,
                                int max_depth) {
     nlevs = *max_element(y.begin(), y.end()) + 1;
@@ -28,10 +28,10 @@ void ClassificationTree::build(const vector<vector<float> > & x,
     for (auto i = 0; i < p; ++i) {
         a[i] = utils::argsort(x[i]);
     }
-    Ws.push_back(accumulate(sample_weight.begin(), sample_weight.end(), 0.0f));
+    Ws.push_back(accumulate(sample_weight.begin(), sample_weight.end(), 0.0));
     Beg.push_back(0);
     End.push_back((int)n);
-    vector<float> mpop((unsigned long)nlevs);
+    vector<double> mpop((unsigned long)nlevs);
     for (int i = 0; i < y.size(); ++i) {
         mpop[y[i]] += sample_weight[i];
     }
@@ -42,19 +42,19 @@ void ClassificationTree::build(const vector<vector<float> > & x,
     while (cur <= kn) {
         int beg = Beg[cur];
         int end = End[cur];
-        vector<float> tpop = Pop[cur];
-        float mpno = 0;
+        vector<double> tpop = Pop[cur];
+        double mpno = 0;
         for (const auto & pop : tpop) {
             mpno += pop * pop;
         }
-        float mpdo = Ws[cur];
-        float mcrit0 = mpno / mpdo;
+        double mpdo = Ws[cur];
+        double mcrit0 = mpno / mpdo;
         int depth = Depth[cur];
         if (mcrit0 / mpdo > 1 - 1e-4 || depth >= max_depth) {
             Leaf.push_back(true);
         } else {
             vector<int> ma(p);
-            vector<float> mgini(p);
+            vector<double> mgini(p);
             bool have_split = false;
             for (int i = 0; i < p; ++i) {
                 auto msplit = split(a[i], x[i], y, sample_weight, tpop, mpno, mpdo, mcrit0, beg, end, nlevs);
@@ -68,64 +68,70 @@ void ClassificationTree::build(const vector<vector<float> > & x,
                 Leaf.push_back(true);
             } else {
                 int pvb = utils::argmax(mgini);
-                float pva = x[pvb][a[pvb][ma[pvb]]];
+                double pva = x[pvb][a[pvb][ma[pvb]]];
                 int left_ns = ma[pvb] - beg + 1;
                 int right_ns = end - ma[pvb];
                 if (min(left_ns, right_ns) >= min_samples_leaf) {
-                    Leaf.push_back(false);
-                    Spvb.push_back(pvb);
-                    Spva.push_back(pva);
-                    Cl.push_back(kn + 1);
-                    Cr.push_back(kn + 2);
-                    //left
-                    Beg.push_back(beg);
-                    End.push_back(ma[pvb] + 1);
-                    vector<float> ltpop((unsigned long)nlevs);
-                    for (int i = Beg[kn + 1]; i < End[kn + 1]; ++i) {
+                    int left_end = ma[pvb] + 1;
+                    vector<double> ltpop((unsigned long)nlevs);
+                    for (int i = beg; i < left_end; ++i) {
                         ltpop[y[a[pvb][i]]] += sample_weight[a[pvb][i]];
                     }
-                    float left_w = accumulate(ltpop.begin(), ltpop.end(), 0.0f);
-                    Ws.push_back(left_w);
-                    Pop.push_back(ltpop);
-                    Pred.push_back(utils::argmax(ltpop));
-                    Depth.push_back(depth + 1);
-                    //right
-                    Beg.push_back(ma[pvb] + 1);
-                    End.push_back(end);
-                    vector<float> rtpop((unsigned long)nlevs);
-                    for (int i = 0; i < nlevs; ++i) {
-                        rtpop[i] = tpop[i] - ltpop[i];
-                    }
-                    Ws.push_back(mpdo - left_w);
-                    Pop.push_back(rtpop);
-                    Pred.push_back(utils::argmax(rtpop));
-                    Depth.push_back(depth + 1);
-
-                    kn += 2;
-                    
-                    vector<int> tin(n);
-                    for (int i = beg; i < ma[pvb] + 1; ++i) {
-                        tin[a[pvb][i]] = 1;
-                    }
-                    for (int i = ma[pvb] + 1; i < end; ++i) {
-                        tin[a[pvb][i]] = 0;
-                    }
-                    for (int i = 0; i < p; ++i) {
-                        if (i != pvb) {
-                            vector<int> al, ar;
-                            for (int j = beg; j < end; ++j) {
-                                int ta = a[i][j];
-                                if (tin[ta]) {
-                                    al.push_back(ta);
-                                } else {
-                                    ar.push_back(ta);
+                    double left_w = accumulate(ltpop.begin(), ltpop.end(), 0.0);
+                    double right_w = mpdo - left_w;
+                    if (min(left_w, right_w) <= 1e-4) { //哇,这一行贼关键
+                        Leaf.push_back(true);
+                    } else {
+                        Leaf.push_back(false);
+                        Spvb.push_back(pvb);
+                        Spva.push_back(pva);
+                        Cl.push_back(kn + 1);
+                        Cr.push_back(kn + 2);
+                        //left
+                        Beg.push_back(beg);
+                        End.push_back(left_end);
+                        Ws.push_back(left_w);
+                        Pop.push_back(ltpop);
+                        Pred.push_back(utils::argmax(ltpop));
+                        Depth.push_back(depth + 1);
+                        //right
+                        Beg.push_back(ma[pvb] + 1);
+                        End.push_back(end);
+                        Ws.push_back(right_w);
+                        vector<double> rtpop((unsigned long)nlevs);
+                        for (int i = 0; i < nlevs; ++i) {
+                            rtpop[i] = tpop[i] - ltpop[i];
+                        }
+                        Pop.push_back(rtpop);
+                        Pred.push_back(utils::argmax(rtpop));
+                        Depth.push_back(depth + 1);
+                        
+                        kn += 2;
+                        
+                        vector<int> tin(n);
+                        for (int i = beg; i < ma[pvb] + 1; ++i) {
+                            tin[a[pvb][i]] = 1;
+                        }
+                        for (int i = ma[pvb] + 1; i < end; ++i) {
+                            tin[a[pvb][i]] = 0;
+                        }
+                        for (int i = 0; i < p; ++i) {
+                            if (i != pvb) {
+                                vector<int> al, ar;
+                                for (int j = beg; j < end; ++j) {
+                                    int ta = a[i][j];
+                                    if (tin[ta]) {
+                                        al.push_back(ta);
+                                    } else {
+                                        ar.push_back(ta);
+                                    }
                                 }
-                            }
-                            for (int k = 0; k < al.size(); ++k) {
-                                a[i][beg + k] = al[k];
-                            }
-                            for (int k = 0; k < ar.size(); ++k) {
-                                a[i][beg + al.size() + k] = ar[k];
+                                for (int k = 0; k < al.size(); ++k) {
+                                    a[i][beg + k] = al[k];
+                                }
+                                for (int k = 0; k < ar.size(); ++k) {
+                                    a[i][beg + al.size() + k] = ar[k];
+                                }
                             }
                         }
                     }
@@ -144,25 +150,25 @@ void ClassificationTree::build(const vector<vector<float> > & x,
     }
 }
 
-pair<int, float> ClassificationTree::split(vector<int> & ta,
-                                           const vector<float> & tx,
+pair<int, double> ClassificationTree::split(vector<int> & ta,
+                                           const vector<double> & tx,
                                            const vector<int> & ty,
-                                           const vector<float> & sample_weight,
-                                           vector<float> & tpop,
-                                           float pno,
-                                           float pdo,
-                                           float crit0,
+                                           const vector<double> & sample_weight,
+                                           vector<double> & tpop,
+                                           double pno,
+                                           double pdo,
+                                           double crit0,
                                            int tbeg,
                                            int tend,
                                            int nlevs) {
     int nbest = -1;
-    float critmax = crit0;
-    float rrn = pno;
-    float rrd = pdo;
-    float rln = 0.0f;
-    float rld = 0.0f;
-    vector<float> wl((unsigned long)nlevs);
-    vector<float> wr = tpop;
+    double critmax = crit0;
+    double rrn = pno;
+    double rrd = pdo;
+    double rln = 0;
+    double rld = 0;
+    vector<double> wl((unsigned long)nlevs);
+    vector<double> wr = tpop;
     for (int i = tbeg; i < tend - 1; ++i) {
         int nc = ta[i];
         int k = ty[nc];
@@ -173,7 +179,7 @@ pair<int, float> ClassificationTree::split(vector<int> & ta,
         wl[k] = wl[k] + sample_weight[nc];
         wr[k] = wr[k] - sample_weight[nc];
         if (tx[nc] < tx[ta[i + 1]]) {
-            float crit = rln / rld + rrn / rrd;
+            double crit = rln / rld + rrn / rrd;
             if (crit > critmax) {
                 nbest = i;
                 critmax = crit;
@@ -186,7 +192,7 @@ pair<int, float> ClassificationTree::split(vector<int> & ta,
     return make_pair(nbest, critmax);
 }
 
-int ClassificationTree::predict(const vector<float> & x) {
+int ClassificationTree::predict(const vector<double> & x) {
     int cur = 0;
     while (!Leaf[cur]) {
         if (x[Spvb[cur]] <= Spva[cur]) {
@@ -198,7 +204,7 @@ int ClassificationTree::predict(const vector<float> & x) {
     return Pred[cur];
 }
 
-vector<int> ClassificationTree::predict(const vector<vector<float> > & x) {
+vector<int> ClassificationTree::predict(const vector<vector<double> > & x) {
     vector<int> preds;
     for (const auto & ix : x) {
         preds.push_back(predict(ix));
@@ -206,7 +212,7 @@ vector<int> ClassificationTree::predict(const vector<vector<float> > & x) {
     return preds;
 }
 
-vector<float> ClassificationTree::predict_proba(const vector<float> & x) {
+vector<double> ClassificationTree::predict_proba(const vector<double> & x) {
     int cur = 0;
     while (!Leaf[cur]) {
         if (x[Spvb[cur]] <= Spva[cur]) {
@@ -215,16 +221,16 @@ vector<float> ClassificationTree::predict_proba(const vector<float> & x) {
             cur = Cr[cur];
         }
     }
-    vector<float> probs = Pop[cur];
-    float cur_w = Ws[cur];
+    vector<double> probs = Pop[cur];
+    double cur_w = Ws[cur];
     for (int i = 0; i < probs.size(); ++i) {
         probs[i] /= cur_w;
     }
     return probs;
 }
 
-vector<vector<float> > ClassificationTree::predict_proba(const vector<vector<float> > & x) {
-    vector<vector<float> > probs;
+vector<vector<double> > ClassificationTree::predict_proba(const vector<vector<double> > & x) {
+    vector<vector<double> > probs;
     for (const auto & ix : x) {
         probs.push_back(predict_proba(ix));
     }
