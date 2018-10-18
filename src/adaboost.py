@@ -2,6 +2,7 @@ import numpy as np
 from tqdm import tqdm
 from GBDT import TreeClassification
 
+
 #def sampling(x, size, p):
 #    x = np.array(x)
 #    p = np.array(p)
@@ -44,7 +45,7 @@ class AdaBoostClassification(object):
         self.estimators_ = []
         self.values_ = []
         sample_weight = self._init_weight()
-        for m in tqdm(range(self.n_estimators)):
+        for m in tqdm(range(self.n_estimators), ncols=min(100, self.n_estimators)):
             estimator = TreeClassification(self.x,
                                            self._y,
                                            sample_weight,
@@ -61,7 +62,7 @@ class AdaBoostClassification(object):
                 self.estimators_.pop(-1)
                 self.values_.pop(-1)
                 if len(self.estimators_) == 0:
-                    raise ValueError('BaseClassifier in AdaBoostClassifier '
+                    raise ValueError('TreeClassification in AdaBoostClassification '
                                      'ensemble is worse than random, ensemble '
                                      'can not be fit.')
                 return None
@@ -96,26 +97,34 @@ if __name__ == "__main__":
     from sklearn.cross_validation import train_test_split
     from sklearn.ensemble import AdaBoostClassifier
     from sklearn.tree import DecisionTreeClassifier
-
+    
     data = load_digits()
     x = data["data"]
     y = data["target"]
     
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
     
+    adaboost_full = AdaBoostClassification(100, min_samples_leaf=2, max_depth=-1)
+    adaboost_full.fit(x_train, y_train)
+    print("depth=-1|adaboost test accuracy: %s" 
+          % np.mean(adaboost_full.predict(x_test) == y_test))
+    
+    sklearn_adaboost_full = AdaBoostClassifier(DecisionTreeClassifier(min_samples_leaf=2, max_depth=None),
+                                          n_estimators=100,
+                                          algorithm="SAMME")
+    sklearn_adaboost_full.fit(x_train, y_train)
+    print("depth=-1|sklearn adaboost test accuracy: %s" 
+          % np.mean(sklearn_adaboost_full.predict(x_test) == y_test))
+    
     adaboost = AdaBoostClassification(100, min_samples_leaf=2, max_depth=3)
     adaboost.fit(x_train, y_train)
-    print("adaboost test accuracy: %s" 
+    print("depth=3|adaboost test accuracy: %s" 
           % np.mean(adaboost.predict(x_test) == y_test))
     
-    sklearn_adaboost = AdaBoostClassifier(DecisionTreeClassifier(max_depth=3),
+    sklearn_adaboost = AdaBoostClassifier(DecisionTreeClassifier(min_samples_leaf=2, max_depth=3),
                                           n_estimators=100,
                                           algorithm="SAMME")
     sklearn_adaboost.fit(x_train, y_train)
-    print("sklearn adaboost test accuracy: %s" 
+    print("depth=3|sklearn adaboost test accuracy: %s" 
           % np.mean(sklearn_adaboost.predict(x_test) == y_test))
-    
-    
-    
-    
     

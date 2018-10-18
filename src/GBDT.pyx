@@ -7,28 +7,28 @@ from sklearn.tree import DecisionTreeRegressor
 from libcpp cimport bool
 from libcpp.vector cimport vector
 
-ctypedef cnp.float_t DTYPE_t
+ctypedef cnp.double_t DTYPE_t
 ctypedef cnp.int64_t DTYPE_i
 
 cdef extern from "../tree/ClassificationTree.h":
     cdef cppclass ClassificationTree:
-        ClassificationTree(const vector[vector[float]] & x,
+        ClassificationTree(const vector[vector[double]] & x,
                            const vector[int] & y,
-                           const vector[float] & sample_weight,
+                           const vector[double] & sample_weight,
                            int min_samples_leaf,
                            int max_depth);
-        vector[int] predict(const vector[vector[float]] & x);
-        vector[vector[float]] predict_proba(const vector[vector[float]] & x);
+        vector[int] predict(const vector[vector[double]] & x);
+        vector[vector[double]] predict_proba(const vector[vector[double]] & x);
 
-        const vector[vector[float]] x;
+        const vector[vector[double]] x;
         const vector[int] y;
         int n_features;
         int nlevs;
         vector[int] Beg, End;
         vector[int] Pred, Cl, Cr, Spvb;
-        vector[float] Ws;
+        vector[double] Ws;
         vector[bool] Leaf;
-        vector[float] Spva;
+        vector[double] Spva;
         vector[int] Depth;
 
 cdef class TreeClassification:
@@ -42,9 +42,9 @@ cdef class TreeClassification:
                   int max_depth=-1):
         _x = np.transpose(x)
         if sample_weight is None:
-            sample_weight = np.ones((len(y)), dtype=float)
+            sample_weight = np.ones((len(y)), dtype=np.double)
         else:
-            sample_weight = np.array(sample_weight, dtype=float).reshape(-1)
+            sample_weight = np.array(sample_weight, dtype=np.double).reshape(-1)
         self._thisptr = new ClassificationTree(_x, y, sample_weight, min_samples_leaf, max_depth)
         if self._thisptr == NULL:
             raise MemoryError()
