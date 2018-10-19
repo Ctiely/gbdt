@@ -95,7 +95,7 @@ if __name__ == "__main__":
 #        print(np.mean(samples == i))
     import time
     from sklearn.datasets import load_digits
-    from sklearn.cross_validation import train_test_split
+    from sklearn.model_selection import train_test_split
     from sklearn.ensemble import AdaBoostClassifier
     from sklearn.tree import DecisionTreeClassifier
     

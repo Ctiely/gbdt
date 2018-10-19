@@ -8,7 +8,7 @@ Created on Sun Oct 14 21:00:17 2018
 
 import numpy as np
 from GBDT import TreeClassification
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_digits
 from sklearn.tree import DecisionTreeClassifier
 

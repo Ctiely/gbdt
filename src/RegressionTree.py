@@ -152,7 +152,7 @@ def predict(x, mytree):
 if __name__ == "__main__":
     import pandas as pd
     from sklearn.datasets import load_boston
-    from sklearn.cross_validation import train_test_split
+    from sklearn.model_selection import train_test_split
     from sklearn.tree import DecisionTreeRegressor
     
     data = load_boston()
