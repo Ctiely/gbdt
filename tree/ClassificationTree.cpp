@@ -25,9 +25,12 @@ void ClassificationTree::build(const vector<vector<double> > & x,
     auto p = x.size();
     auto n = x.front().size();
     vector<vector<int> > a(p);
+
+    #pragma omp parallel for
     for (auto i = 0; i < p; ++i) {
         a[i] = utils::argsort(x[i]);
     }
+
     Ws.push_back(accumulate(sample_weight.begin(), sample_weight.end(), 0.0));
     Beg.push_back(0);
     End.push_back((int)n);
@@ -56,12 +59,18 @@ void ClassificationTree::build(const vector<vector<double> > & x,
             vector<int> ma(p);
             vector<double> mgini(p);
             bool have_split = false;
+
+            #pragma omp parallel for
             for (int i = 0; i < p; ++i) {
                 auto msplit = split(a[i], x[i], y, sample_weight, tpop, mpno, mpdo, mcrit0, beg, end, nlevs);
                 ma[i] = msplit.first;
                 mgini[i] = msplit.second;
-                if (msplit.first >= 0) {
+            }
+
+            for (const auto & ima : ma) {
+                if (ima >= 0) {
                     have_split = true;
+                    break;
                 }
             }
             if (!have_split) {
@@ -74,9 +83,11 @@ void ClassificationTree::build(const vector<vector<double> > & x,
                 if (min(left_ns, right_ns) >= min_samples_leaf) {
                     int left_end = ma[pvb] + 1;
                     vector<double> ltpop((unsigned long)nlevs);
+
                     for (int i = beg; i < left_end; ++i) {
                         ltpop[y[a[pvb][i]]] += sample_weight[a[pvb][i]];
                     }
+
                     double left_w = accumulate(ltpop.begin(), ltpop.end(), 0.0);
                     double right_w = mpdo - left_w;
                     if (min(left_w, right_w) <= 1e-4) { //哇,这一行贼关键
@@ -99,9 +110,12 @@ void ClassificationTree::build(const vector<vector<double> > & x,
                         End.push_back(end);
                         Ws.push_back(right_w);
                         vector<double> rtpop((unsigned long)nlevs);
+
+                        #pragma omp parallel for
                         for (int i = 0; i < nlevs; ++i) {
                             rtpop[i] = tpop[i] - ltpop[i];
                         }
+
                         Pop.push_back(rtpop);
                         Pred.push_back(utils::argmax(rtpop));
                         Depth.push_back(depth + 1);
@@ -109,12 +123,17 @@ void ClassificationTree::build(const vector<vector<double> > & x,
                         kn += 2;
                         
                         vector<int> tin(n);
+
+                        #pragma omp parallel for
                         for (int i = beg; i < ma[pvb] + 1; ++i) {
                             tin[a[pvb][i]] = 1;
                         }
+
+                        #pragma omp parallel for
                         for (int i = ma[pvb] + 1; i < end; ++i) {
                             tin[a[pvb][i]] = 0;
                         }
+
                         for (int i = 0; i < p; ++i) {
                             if (i != pvb) {
                                 vector<int> al, ar;
