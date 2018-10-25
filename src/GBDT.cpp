@@ -8,9 +8,20 @@
             "/anaconda3/lib/python3.6/site-packages/numpy/core/include/numpy/arrayobject.h",
             "/anaconda3/lib/python3.6/site-packages/numpy/core/include/numpy/ufuncobject.h"
         ],
+        "extra_compile_args": [
+            "-L/usr/local/opt/libomp/lib",
+            "-fopenmp",
+            "-I/usr/local/Cellar/llvm/7.0.0/lib/clang/7.0.0/include"
+        ],
+        "extra_link_args": [
+            "-L/usr/local/opt/libomp/lib",
+            "-fopenmp",
+            "-I/usr/local/Cellar/llvm/7.0.0/lib/clang/7.0.0/include"
+        ],
         "include_dirs": [
             ".",
-            "/anaconda3/lib/python3.6/site-packages/numpy/core/include"
+            "/anaconda3/lib/python3.6/site-packages/numpy/core/include",
+            "/usr/local/opt/libomp/include"
         ],
         "language": "c++",
         "name": "GBDT",
