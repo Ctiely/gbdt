@@ -134,6 +134,7 @@ void ClassificationTree::build(const vector<vector<double> > & x,
                             tin[a[pvb][i]] = 0;
                         }
 
+                        #pragma omp parallel for
                         for (int i = 0; i < p; ++i) {
                             if (i != pvb) {
                                 vector<int> al, ar;
