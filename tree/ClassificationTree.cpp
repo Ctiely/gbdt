@@ -12,7 +12,7 @@ ClassificationTree::ClassificationTree(const vector<vector<double> > & x,
         : x(x), y(y) {
     n_features = (int)x.size();
     assert(y.size() == sample_weight.size());
-    max_depth = (max_depth == -1) ? (int)log2(x.front().size()) : max_depth;
+    max_depth = (max_depth == -1) ? INT_MAX : max_depth;
     build(x, y, sample_weight, min_samples_leaf, max_depth);
 }
 

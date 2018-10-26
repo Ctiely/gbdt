@@ -6,6 +6,7 @@
 #define GBDT_CLASSIFICATIONTREE_H
 
 #include <cmath>
+#include <limits>
 #include <vector>
 #include <numeric>
 #include <utility>
