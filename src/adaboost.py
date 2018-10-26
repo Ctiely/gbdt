@@ -68,7 +68,7 @@ class AdaBoostClassification(object):
                 return None
     
             # Boost weight using multi-class AdaBoost SAMME alg
-            estimator_weight = (np.log((1. - estimator_error) / estimator_error) +
+            estimator_weight = (np.log((1. - estimator_error) / (estimator_error + 1e-10)) +
                 np.log(self.K - 1.))
     
             self.values_.append(estimator_weight)
@@ -105,24 +105,24 @@ if __name__ == "__main__":
     
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
     time.sleep(1)
-    adaboost_full = AdaBoostClassification(100, min_samples_leaf=2, max_depth=-1)
+    adaboost_full = AdaBoostClassification(100, min_samples_leaf=1, max_depth=-1)
     adaboost_full.fit(x_train, y_train)
     print("depth=-1|adaboost test accuracy: %s"
           % np.mean(adaboost_full.predict(x_test) == y_test))
     
-    sklearn_adaboost_full = AdaBoostClassifier(DecisionTreeClassifier(min_samples_leaf=2, max_depth=None),
+    sklearn_adaboost_full = AdaBoostClassifier(DecisionTreeClassifier(min_samples_leaf=1, max_depth=None),
                                           n_estimators=100,
                                           algorithm="SAMME")
     sklearn_adaboost_full.fit(x_train, y_train)
     print("depth=-1|sklearn adaboost test accuracy: %s" 
           % np.mean(sklearn_adaboost_full.predict(x_test) == y_test))
     time.sleep(1)
-    adaboost = AdaBoostClassification(100, min_samples_leaf=2, max_depth=3)
+    adaboost = AdaBoostClassification(100, min_samples_leaf=1, max_depth=3)
     adaboost.fit(x_train, y_train)
     print("depth=3|adaboost test accuracy: %s" 
           % np.mean(adaboost.predict(x_test) == y_test))
     
-    sklearn_adaboost = AdaBoostClassifier(DecisionTreeClassifier(min_samples_leaf=2, max_depth=3),
+    sklearn_adaboost = AdaBoostClassifier(DecisionTreeClassifier(min_samples_leaf=1, max_depth=3),
                                           n_estimators=100,
                                           algorithm="SAMME")
     sklearn_adaboost.fit(x_train, y_train)
