@@ -99,10 +99,26 @@ cdef class TreeClassification:
         return self.predict(x)
 
 class GBDTClassifier(object):
-    def __init__(self, n_estimators=100, max_depth=3):
+    def __init__(self, 
+                 learning_rate=0.1,
+                 n_estimators=100, 
+                 min_samples_split=2, 
+                 min_samples_leaf=1, 
+                 min_weight_fraction_leaf=0.0, 
+                 max_depth=3, 
+                 min_impurity_decrease=0.0, 
+                 min_impurity_split=None, 
+                 max_leaf_nodes=None):
+        self.learning_rate = learning_rate
         self.n_estimators = n_estimators
+        self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
+        self.min_weight_fraction_leaf = min_weight_fraction_leaf 
         self.max_depth = max_depth
-
+        self.min_impurity_decrease = min_impurity_decrease
+        self.min_impurity_split = min_impurity_split
+        self.max_leaf_nodes = max_leaf_nodes
+        
     def _init_estimator(self, x):
         return np.zeros(x.shape[0])
 
@@ -123,7 +139,13 @@ class GBDTClassifier(object):
             pk = exp_Fs / exp_Fsum
             for k in range(self.K):
                 yk = (self._y == k) - pk[k]
-                tree = DecisionTreeRegressor(max_depth=self.max_depth)
+                tree = DecisionTreeRegressor(min_samples_split=self.min_samples_split,
+                                             min_samples_leaf=self.min_samples_leaf,
+                                             min_weight_fraction_leaf=self.min_weight_fraction_leaf, 
+                                             max_depth=self.max_depth,
+                                             min_impurity_decrease=self.min_impurity_decrease,
+                                             min_impurity_split=self.min_impurity_split,
+                                             max_leaf_nodes=self.max_leaf_nodes)
                 tree.fit(self.x, yk)
                 nodes = tree.apply(self.x)
                 map_nodes = defaultdict(list)
@@ -134,7 +156,7 @@ class GBDTClassifier(object):
                     _yk = yk[indexs]
                     abs_yk = np.abs(_yk)
                     gamma = (self.K - 1) / self.K * np.sum(_yk) / (np.sum(abs_yk * (1 - abs_yk)) + 1e-10)
-                    values_[node] = gamma
+                    values_[node] = self.learning_rate * gamma
                 self.estimators_[m][k] = tree
                 self.values_[m][k] = values_
                 _F[k] = _F[k] + np.array([values_[node] for node in nodes])
